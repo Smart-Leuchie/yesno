@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ComBoard">
+<title>ComBoard</title>
+<link rel="apple-touch-icon" id="touchIcon" href="">
+<style>
+  :root{
+    --gap: 12px;
+    --pad: 12px;
+    --header-h: 58px;
+    --accent: #1b6f8c;
+    --accent-dark: #124b5f;
+    --danger: #c0392b;
+    --bg: #eef3f5;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body{
+    margin:0; padding:0; height:100%; width:100%;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+  }
+  #app{ display:flex; flex-direction:column; height:100dvh; height:100vh; width:100%; }
+
+  header{
+    flex: 0 0 auto;
+    background: var(--accent-dark);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 0 14px;
+    padding-top: env(safe-area-inset-top);
+    height: calc(var(--header-h) + env(safe-area-inset-top));
+  }
+  #boardTitle{
+    font-size: 18px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow:hidden;
+    text-overflow: ellipsis;
+    max-width: 60%;
+    -webkit-touch-callout: none;
+  }
+  .headerBtns{ display:flex; gap:8px; align-items:center; }
+  .hdrBtn{
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 7px 11px;
+    border-radius: 10px;
+  }
+  .hdrBtn.done{ background: #2e9e5b; }
+  .hdrBtn:active{ opacity:0.7; }
+
+  /* ---- Quick row (row 1: standalone shortcut words) ---- */
+  #quickRow{
+    flex: 0 0 auto;
+    display:flex;
+    gap:8px;
+    padding: 7px var(--pad);
+    overflow-x:auto;
+    background:#dfe9ec;
+    border-bottom: 1px solid #c9d6da;
+    -webkit-overflow-scrolling: touch;
+  }
+  .quickTile{
+    position:relative;
+    flex: 0 0 auto;
+    width: 68px; height:68px;
+    border-radius:13px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    border: 2px solid transparent;
+    background: var(--accent);
+  }
+  .quickTile:active{ transform: scale(0.93); }
+  .quickTile.speaking{ border-color:#124b5f; }
+  .quickTile img{ width:100%; flex:1 1 auto; object-fit:cover; min-height:0; pointer-events:none; }
+  .quickTile .qLabel{
+    font-size:10px; font-weight:700; text-align:center; padding:2px 2px 3px; color:#fff;
+    background: rgba(0,0,0,0.15);
+  }
+  .quickTile.noImg .qLabel{ flex:1 1 auto; display:flex; align-items:center; justify-content:center; font-size:11px; background:transparent; }
+  .quickAdd{
+    flex:0 0 auto; width:68px; height:68px; border-radius:13px;
+    border:2px dashed #9fb6bd; display:flex; align-items:center; justify-content:center;
+    color: var(--accent-dark); font-size:26px; font-weight:300; background:rgba(255,255,255,0.5);
+  }
+  .quickTile .editBadge{ position:absolute; top:2px; right:2px; width:18px; height:18px; font-size:11px; }
+
+  /* ---- Category row (row 2: verb / tense) ---- */
+  #categoryRow, #intensityRow{
+    flex:0 0 auto;
+    display:flex;
+    gap:7px;
+    padding: 6px var(--pad);
+    overflow-x:auto;
+    background:#fff;
+    -webkit-overflow-scrolling: touch;
+  }
+  #intensityRow{ padding-bottom:3px; }
+  #categoryRow{ padding-top:3px; padding-bottom:8px; border-bottom: 2px solid #eef3f5; }
+
+  .catBtn{
+    flex:1 1 0;
+    min-width:64px;
+    padding: 10px 6px;
+    border-radius: 12px;
+    background: #eef3f5;
+    color: #345;
+    font-size: 14px;
+    font-weight: 700;
+    border: 2px solid transparent;
+    white-space: nowrap;
+    text-transform: capitalize;
+  }
+  .catBtn.active{ background: var(--accent); color:#fff; border-color: var(--accent-dark); }
+  .catAdd{ flex:0 0 auto; width:44px; border-radius:12px; border:2px dashed #9fb6bd; background:rgba(255,255,255,0.6); color:var(--accent-dark); font-size:20px; }
+
+  .intBtn{
+    flex:1 1 0;
+    min-width:44px;
+    padding: 9px 4px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 800;
+    border: 3px solid transparent;
+    color:#fff;
+    opacity:0.55;
+  }
+  .intBtn.active{ opacity:1; box-shadow: 0 0 0 2px rgba(0,0,0,0.25) inset; }
+
+  #editHint{
+    flex:0 0 auto;
+    padding: 8px var(--pad) 4px;
+    font-size: 13px;
+    color: var(--accent-dark);
+    font-weight:600;
+    background:#fff;
+  }
+
+  main{
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: var(--pad);
+    padding-bottom: calc(var(--pad) + env(safe-area-inset-bottom));
+  }
+  #board{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--gap);
+  }
+  .tile{
+    position:relative;
+    aspect-ratio: 1 / 1;
+    background:#fff;
+    border-radius: 16px;
+    overflow:hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    display:flex;
+    flex-direction:column;
+    border: 3px solid transparent;
+    transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  .tile:active{ transform: scale(0.94); }
+  .tile.speaking{ border-color: var(--accent); background:#eaf6fb; }
+  .tile img{
+    width:100%;
+    flex: 1 1 auto;
+    object-fit: cover;
+    min-height:0;
+    pointer-events:none;
+    -webkit-user-drag:none;
+  }
+  .tile .label{
+    flex: 0 0 auto;
+    font-size: 13px;
+    font-weight: 700;
+    color:#222;
+    text-align:center;
+    padding: 4px 4px 6px;
+    line-height:1.15;
+    background:#fff;
+    word-break: break-word;
+  }
+  .tile.noImg .label{ flex:1 1 auto; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .tile.noImg{ background: var(--accent); }
+  .tile.noImg .label{ color:#fff; }
+
+  .tile .editBadge{
+    position:absolute; top:6px; right:6px;
+    width:28px; height:28px;
+    background: var(--danger);
+    color:#fff;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:800;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    z-index:2;
+  }
+  .tile.editing::after{
+    content:"";
+    position:absolute; inset:0;
+    background: rgba(27,111,140,0.18);
+  }
+
+  .addTile{
+    display:flex; align-items:center; justify-content:center;
+    border: 3px dashed #9fb6bd;
+    background: rgba(255,255,255,0.5);
+    color: var(--accent-dark);
+    font-size: 42px;
+    font-weight: 300;
+  }
+
+  /* Modal */
+  .modalOverlay{
+    position:fixed; inset:0; background: rgba(0,0,0,0.5);
+    display:flex; align-items:center; justify-content:center;
+    z-index: 50; padding: 20px;
+  }
+  .modal{
+    background:#fff; border-radius:18px; padding:20px;
+    width: 100%; max-width: 440px;
+    max-height: 90vh; overflow-y:auto;
+    -webkit-user-select:text; user-select:text;
+  }
+  .modal h2{ margin:0 0 14px; font-size:19px; color:var(--accent-dark); }
+  .modal label{ display:block; font-size:13px; font-weight:600; color:#555; margin: 14px 0 6px; }
+  .modal input[type=text], .modal input[type=number], .modal select{
+    width:100%; padding:10px; font-size:16px; border-radius:10px; border:1px solid #ccc;
+  }
+  .imgPreviewWrap{
+    width: 140px; height:140px; margin: 4px auto 8px;
+    border-radius:16px; overflow:hidden; background:#eee;
+    display:flex; align-items:center; justify-content:center;
+    border: 2px solid #ddd;
+  }
+  .imgPreviewWrap img{ width:100%; height:100%; object-fit:cover; }
+  .imgPreviewWrap span{ color:#999; font-size:13px; }
+  .fileBtn{
+    display:block; width:100%; text-align:center; padding:12px; margin-top:8px;
+    background: var(--accent); color:#fff; border-radius:10px; font-weight:600; font-size:15px; border:none;
+  }
+  .modalBtns{ display:flex; gap:10px; margin-top:22px; }
+  .modalBtns button{
+    flex:1; padding:13px; border-radius:12px; border:none; font-size:16px; font-weight:700;
+  }
+  .btnCancel{ background:#e5e5e5; color:#333; }
+  .btnSave{ background: var(--accent); color:#fff; }
+  .btnDelete{ background: var(--danger); color:#fff; }
+
+  .settingsSection{ margin-bottom: 18px; padding-bottom:14px; border-bottom:1px solid #eee; }
+  .settingsSection:last-child{ border-bottom:none; }
+  .settingsSection h3{ font-size:15px; margin: 0 0 4px; color:var(--accent-dark); }
+  .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0; }
+  .row span.rowLabel{ font-size:15px; color:#333; }
+  input[type=range]{ width:100%; }
+  .switch{ position:relative; width:50px; height:30px; flex:0 0 auto; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; background:#ccc; border-radius:30px; transition:0.2s; }
+  .slider::before{ content:""; position:absolute; width:24px; height:24px; left:3px; top:3px; background:#fff; border-radius:50%; transition:0.2s; }
+  .switch input:checked + .slider{ background: var(--accent); }
+  .switch input:checked + .slider::before{ transform: translateX(20px); }
+  .smallNote{ font-size:12px; color:#888; margin-top:4px; }
+  .ioBtns{ display:flex; gap:10px; }
+  .ioBtns button{ flex:1; padding:11px; border-radius:10px; border:1px solid #ccc; background:#f7f7f7; font-weight:600; font-size:14px; }
+  #fileInput, #importInput{ display:none; }
+  #emptyState{
+    text-align:center; color:#78909a; margin-top: 15vh; font-size:16px; padding:0 30px;
+    -webkit-user-select:none;
+  }
+
+  .catEditRow{ margin-bottom:14px; padding:10px; background:#f5f8f9; border-radius:10px; }
+  .catEditRow .catEditTop{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .catEditRow .catEditTop input{ flex:1; }
+  .catEditRow .catDelBtn{ flex:0 0 auto; background:var(--danger); color:#fff; border:none; border-radius:8px; padding:8px 10px; font-weight:700; }
+  .levelGrid{ display:grid; grid-template-columns: 44px 1fr; gap:6px 8px; align-items:center; }
+  .levelGrid .levelSym{ font-weight:800; text-align:center; padding:4px; border-radius:6px; color:#fff; font-size:13px; }
+  .levelGrid input{ padding:7px; font-size:13px; }
+  .addCatBtn{ width:100%; padding:11px; border-radius:10px; border:2px dashed #9fb6bd; background:rgba(255,255,255,0.6); color:var(--accent-dark); font-weight:700; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div id="boardTitle">Communication Board</div>
+    <div class="headerBtns" id="editHeaderBtns" style="display:none;">
+      <button class="hdrBtn" id="settingsBtn">⚙ Settings</button>
+      <button class="hdrBtn done" id="doneBtn">✓ Done</button>
+    </div>
+  </header>
+
+  <div id="quickRow"></div>
+  <div id="intensityRow"></div>
+  <div id="categoryRow"></div>
+  <div id="editHint" style="display:none;">Editing mode — add or change pictures below. The category and intensity rows are hidden while editing.</div>
+
+  <main>
+    <div id="board"></div>
+    <div id="emptyState" style="display:none;"></div>
+  </main>
+</div>
+
+<!-- Add/Edit tile modal (grid pictures + quick tiles) -->
+<div class="modalOverlay" id="tileModalOverlay" style="display:none;">
+  <div class="modal">
+    <h2 id="tileModalTitle">Add Tile</h2>
+    <div class="imgPreviewWrap" id="imgPreviewWrap"><span>No image</span></div>
+    <button class="fileBtn" id="chooseImgBtn">Choose Photo</button>
+    <input type="file" id="fileInput" accept="image/*">
+    <label for="tileText">Word or phrase</label>
+    <input type="text" id="tileText" maxlength="60" placeholder="e.g. a drink">
+    <div class="smallNote" id="filenameHint" style="display:none;">Filled in from the photo's file name — change it if you'd like different wording.</div>
+    <div class="modalBtns">
+      <button class="btnCancel" id="tileCancelBtn">Cancel</button>
+      <button class="btnSave" id="tileSaveBtn">Save</button>
+    </div>
+    <div class="modalBtns" id="deleteRow" style="display:none;">
+      <button class="btnDelete" id="tileDeleteBtn" style="width:100%;">Delete Tile</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modalOverlay" id="settingsModalOverlay" style="display:none;">
+  <div class="modal">
+    <h2>Settings</h2>
+
+    <div class="settingsSection">
+      <label for="titleInput">Board title</label>
+      <input type="text" id="titleInput" maxlength="40">
+    </div>
+
+    <div class="settingsSection">
+      <div class="row"><span class="rowLabel">Show text on tiles</span>
+        <label class="switch"><input type="checkbox" id="showTextToggle"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <div class="settingsSection">
+      <h3>Categories &amp; intensity</h3>
+      <div class="smallNote" style="margin-bottom:10px;">Each category word (e.g. "want") can build a sentence at 6 strengths, from "---" (strongest negative) to "+++" (strongest positive). Change the word itself, or the exact phrase spoken at each strength.</div>
+      <div id="catEditList"></div>
+      <button class="addCatBtn" id="addCatBtn">+ Add category</button>
+    </div>
+
+    <div class="settingsSection">
+      <label for="voiceSelect">Voice</label>
+      <select id="voiceSelect"></select>
+      <label for="rateRange">Speech rate: <span id="rateVal"></span></label>
+      <input type="range" id="rateRange" min="0.5" max="1.5" step="0.05">
+      <label for="pitchRange">Pitch: <span id="pitchVal"></span></label>
+      <input type="range" id="pitchRange" min="0.5" max="1.5" step="0.05">
+      <button class="fileBtn" id="testVoiceBtn" style="margin-top:14px;">Test Voice</button>
+    </div>
+
+    <div class="settingsSection">
+      <label>Backup</label>
+      <div class="ioBtns">
+        <button id="exportBtn">Export Board</button>
+        <button id="importBtn">Import Board</button>
+      </div>
+      <input type="file" id="importInput" accept="application/json">
+      <div class="smallNote">Export saves everything (pictures, categories, quick row and settings) to a file you can keep safe or load onto another iPad. Import replaces the current board.</div>
+    </div>
+
+    <div class="modalBtns">
+      <button class="btnCancel" id="settingsCloseBtn" style="width:100%;">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Apple touch icon (inline SVG) ----------
+  var iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><rect width="180" height="180" rx="38" fill="%23124b5f"/><path d="M40 60c0-11 9-20 20-20h60c11 0 20 9 20 20v40c0 11-9 20-20 20H85l-22 18v-18H60c-11 0-20-9-20-20V60z" fill="white"/><circle cx="65" cy="80" r="6" fill="%23124b5f"/><circle cx="90" cy="80" r="6" fill="%23124b5f"/><circle cx="115" cy="80" r="6" fill="%23124b5f"/></svg>';
+  document.getElementById('touchIcon').href = 'data:image/svg+xml,' + iconSvg;
+
+  // ---------- Defaults ----------
+  var LEVELS = ['---', '--', '-', '+', '++', '+++'];
+  var LEVEL_COLORS = {
+    '---': '#8e1c12',
+    '--':  '#c0392b',
+    '-':   '#e08a75',
+    '+':   '#8fd19e',
+    '++':  '#2e9e5b',
+    '+++': '#145c34'
+  };
+
+  function defaultPhrases(verb){
+    return {
+      '---': "I really don't " + verb,
+      '--':  "I don't " + verb,
+      '-':   "I don't really " + verb,
+      '+':   "I " + verb,
+      '++':  "I really " + verb,
+      '+++': "I really really " + verb
+    };
+  }
+
+  var DEFAULT_CATEGORIES = ['like','want','have','do','need','see'].map(function(verb, i){
+    return { id: verb, order: i, label: verb, phrases: defaultPhrases(verb) };
+  });
+
+  var DEFAULT_QUICK_TILES = [
+    { text:'Please', image:null, color:null, order:0 },
+    { text:'No', image:null, color:'#c0392b', order:1 },
+    { text:"Don't know", image:null, color:'#c98a1b', order:2 },
+    { text:'Understood', image:null, color:null, order:3 },
+    { text:'Yes', image:null, color:'#2e9e5b', order:4 },
+    { text:'Excuse me', image:null, color:null, order:5 }
+  ];
+
+  // ---------- IndexedDB ----------
+  var DB_NAME = 'comboardDB', DB_VERSION = 3;
+  var db;
+
+  function openDB(){
+    return new Promise(function(resolve, reject){
+      var req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = function(e){
+        var d = e.target.result;
+        if(!d.objectStoreNames.contains('tiles')){
+          d.createObjectStore('tiles', { keyPath:'id', autoIncrement:true });
+        }
+        if(!d.objectStoreNames.contains('settings')){
+          d.createObjectStore('settings', { keyPath:'key' });
+        }
+        if(!d.objectStoreNames.contains('quickTiles')){
+          d.createObjectStore('quickTiles', { keyPath:'id', autoIncrement:true });
+        }
+        if(!d.objectStoreNames.contains('categories')){
+          d.createObjectStore('categories', { keyPath:'id' });
+        }
+        // 'scales' (from an earlier version) is left in place if present but is no longer used.
+      };
+      req.onsuccess = function(e){ db = e.target.result; resolve(db); };
+      req.onerror = function(e){ reject(e); };
+    });
+  }
+
+  function txStore(name, mode){
+    return db.transaction(name, mode || 'readonly').objectStore(name);
+  }
+
+  function getAll(storeName){
+    return new Promise(function(resolve){
+      var items = [];
+      var store = txStore(storeName);
+      var req = store.openCursor();
+      req.onsuccess = function(e){
+        var cur = e.target.result;
+        if(cur){ items.push(cur.value); cur.continue(); }
+        else{ resolve(items); }
+      };
+      req.onerror = function(){ resolve(items); };
+    });
+  }
+
+  function putItem(storeName, item){
+    return new Promise(function(resolve, reject){
+      var store = txStore(storeName, 'readwrite');
+      var req = (item.id !== undefined && item.id !== null) ? store.put(item) : store.add(item);
+      req.onsuccess = function(e){ resolve(e.target.result); };
+      req.onerror = function(e){ reject(e); };
+    });
+  }
+
+  function deleteItem(storeName, id){
+    return new Promise(function(resolve){
+      var store = txStore(storeName, 'readwrite');
+      var req = store.delete(id);
+      req.onsuccess = function(){ resolve(); };
+      req.onerror = function(){ resolve(); };
+    });
+  }
+
+  function clearStore(storeName){
+    return new Promise(function(resolve){
+      var store = txStore(storeName, 'readwrite');
+      var req = store.clear();
+      req.onsuccess = function(){ resolve(); };
+      req.onerror = function(){ resolve(); };
+    });
+  }
+
+  function getSetting(key, fallback){
+    return new Promise(function(resolve){
+      var store = txStore('settings');
+      var req = store.get(key);
+      req.onsuccess = function(e){ resolve(e.target.result ? e.target.result.value : fallback); };
+      req.onerror = function(){ resolve(fallback); };
+    });
+  }
+
+  function setSetting(key, value){
+    return new Promise(function(resolve){
+      var store = txStore('settings', 'readwrite');
+      var req = store.put({ key:key, value:value });
+      req.onsuccess = function(){ resolve(); };
+      req.onerror = function(){ resolve(); };
+    });
+  }
+
+  // ---------- State ----------
+  var state = {
+    tiles: [],            // shared picture library: {id, image, text, order}
+    quickTiles: [],        // always-visible standalone tiles: {id, image, text, color, order}
+    categories: [],        // [{id, order, label, phrases:{---:'',--:'',-:'',+:'',++:'',+++:''}}]
+    activeCategoryId: null,
+    activeLevel: '+',
+    editMode: false,
+    showText: true,
+    rate: 1,
+    pitch: 1,
+    voiceURI: '',
+    title: 'Communication Board',
+    editingTileId: null,
+    editingIsQuick: false,
+    chosenImageData: null
+  };
+
+  var boardEl = document.getElementById('board');
+  var emptyStateEl = document.getElementById('emptyState');
+  var boardTitleEl = document.getElementById('boardTitle');
+  var editHeaderBtns = document.getElementById('editHeaderBtns');
+  var quickRowEl = document.getElementById('quickRow');
+  var categoryRowEl = document.getElementById('categoryRow');
+  var intensityRowEl = document.getElementById('intensityRow');
+  var editHintEl = document.getElementById('editHint');
+
+  function getActiveCategory(){
+    return state.categories.find(function(c){ return c.id === state.activeCategoryId; }) || state.categories[0];
+  }
+
+  function capitalize(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+  function composeSentence(category, level, fragment){
+    var prefix = (category.phrases && category.phrases[level]) ? category.phrases[level] : '';
+    var text = prefix.trim();
+    if(fragment) text += (text ? ' ' : '') + fragment.trim();
+    return capitalize(text);
+  }
+
+  // ---------- Rendering ----------
+  function renderQuickRow(){
+    quickRowEl.innerHTML = '';
+    state.quickTiles.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); }).forEach(function(tile){
+      var el = document.createElement('div');
+      el.className = 'quickTile' + (tile.image ? '' : ' noImg');
+      if(!tile.image){ el.style.background = tile.color || 'var(--accent)'; }
+      if(tile.image){
+        var img = document.createElement('img');
+        img.src = tile.image; img.alt = tile.text || ''; img.draggable=false;
+        el.appendChild(img);
+      }
+      var label = document.createElement('div');
+      label.className = 'qLabel';
+      label.textContent = tile.text || '';
+      el.appendChild(label);
+      if(state.editMode){
+        var badge = document.createElement('div');
+        badge.className = 'editBadge';
+        badge.textContent = '✎';
+        el.appendChild(badge);
+      }
+      el.addEventListener('click', function(){
+        if(state.editMode){ openTileModal(tile, true); }
+        else{ speak(tile.text); pulseTile(el); }
+      });
+      quickRowEl.appendChild(el);
+    });
+    if(state.editMode){
+      var addEl = document.createElement('div');
+      addEl.className = 'quickAdd';
+      addEl.textContent = '+';
+      addEl.addEventListener('click', function(){ openTileModal(null, true); });
+      quickRowEl.appendChild(addEl);
+    }
+  }
+
+  function renderCategoryAndIntensity(){
+    categoryRowEl.style.display = state.editMode ? 'none' : 'flex';
+    intensityRowEl.style.display = state.editMode ? 'none' : 'flex';
+    editHintEl.style.display = state.editMode ? 'block' : 'none';
+    if(state.editMode) return;
+
+    categoryRowEl.innerHTML = '';
+    state.categories.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); }).forEach(function(cat){
+      var btn = document.createElement('button');
+      btn.className = 'catBtn' + (cat.id === state.activeCategoryId ? ' active' : '');
+      btn.textContent = cat.label;
+      btn.addEventListener('click', function(){
+        state.activeCategoryId = cat.id;
+        renderCategoryAndIntensity();
+      });
+      categoryRowEl.appendChild(btn);
+    });
+
+    intensityRowEl.innerHTML = '';
+    LEVELS.forEach(function(level){
+      var btn = document.createElement('button');
+      btn.className = 'intBtn' + (level === state.activeLevel ? ' active' : '');
+      btn.style.background = LEVEL_COLORS[level];
+      btn.textContent = level;
+      btn.addEventListener('click', function(){
+        state.activeLevel = level;
+        renderCategoryAndIntensity();
+      });
+      intensityRowEl.appendChild(btn);
+    });
+  }
+
+  function renderBoard(){
+    boardEl.innerHTML = '';
+    var tiles = state.tiles.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
+
+    if(tiles.length === 0 && !state.editMode){
+      emptyStateEl.style.display = 'block';
+      emptyStateEl.innerHTML = 'No pictures yet.<br>Press and hold the title bar for a couple of seconds to enter edit mode and add one.';
+    }else{
+      emptyStateEl.style.display = 'none';
+    }
+
+    tiles.forEach(function(tile){
+      var el = document.createElement('div');
+      el.className = 'tile' + (tile.image ? '' : ' noImg') + (state.editMode ? ' editing' : '');
+      el.dataset.id = tile.id;
+
+      if(tile.image){
+        var img = document.createElement('img');
+        img.src = tile.image;
+        img.alt = tile.text || '';
+        img.draggable = false;
+        el.appendChild(img);
+      }
+      if(state.showText || !tile.image){
+        var label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = tile.text || '';
+        el.appendChild(label);
+      }
+      if(state.editMode){
+        var badge = document.createElement('div');
+        badge.className = 'editBadge';
+        badge.textContent = '✎';
+        el.appendChild(badge);
+      }
+      el.addEventListener('click', function(){
+        if(state.editMode){ openTileModal(tile, false); }
+        else{
+          var cat = getActiveCategory();
+          speak(composeSentence(cat, state.activeLevel, tile.text));
+          pulseTile(el);
+        }
+      });
+      boardEl.appendChild(el);
+    });
+
+    if(state.editMode){
+      var addEl = document.createElement('div');
+      addEl.className = 'tile addTile';
+      addEl.textContent = '+';
+      addEl.addEventListener('click', function(){ openTileModal(null, false); });
+      boardEl.appendChild(addEl);
+    }
+  }
+
+  function renderAll(){
+    renderQuickRow();
+    renderCategoryAndIntensity();
+    renderBoard();
+  }
+
+  function pulseTile(el){
+    el.classList.add('speaking');
+    setTimeout(function(){ el.classList.remove('speaking'); }, 700);
+  }
+
+  // ---------- Speech ----------
+  var voices = [];
+  function loadVoices(){
+    voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    var sel = document.getElementById('voiceSelect');
+    var current = sel.value || state.voiceURI;
+    sel.innerHTML = '<option value="">Default device voice</option>';
+    voices.forEach(function(v){
+      var opt = document.createElement('option');
+      opt.value = v.voiceURI;
+      opt.textContent = v.name + ' (' + v.lang + ')';
+      sel.appendChild(opt);
+    });
+    sel.value = current || '';
+  }
+  if(window.speechSynthesis){
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  function speak(text){
+    if(!text || !window.speechSynthesis) return;
+    try{
+      window.speechSynthesis.cancel();
+      var utter = new SpeechSynthesisUtterance(text);
+      utter.rate = state.rate;
+      utter.pitch = state.pitch;
+      if(state.voiceURI){
+        var v = voices.find(function(x){ return x.voiceURI === state.voiceURI; });
+        if(v) utter.voice = v;
+      }
+      window.speechSynthesis.speak(utter);
+    }catch(err){ console.error('Speech error', err); }
+  }
+
+  // ---------- Edit mode / long-press ----------
+  var pressTimer = null;
+  function startPress(){
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(function(){
+      enterEditMode();
+      if(navigator.vibrate) navigator.vibrate(30);
+    }, 1800);
+  }
+  function cancelPress(){ clearTimeout(pressTimer); }
+
+  boardTitleEl.addEventListener('touchstart', startPress, {passive:true});
+  boardTitleEl.addEventListener('touchend', cancelPress);
+  boardTitleEl.addEventListener('touchmove', cancelPress);
+  boardTitleEl.addEventListener('touchcancel', cancelPress);
+  boardTitleEl.addEventListener('mousedown', startPress);
+  boardTitleEl.addEventListener('mouseup', cancelPress);
+  boardTitleEl.addEventListener('mouseleave', cancelPress);
+
+  function enterEditMode(){
+    state.editMode = true;
+    editHeaderBtns.style.display = 'flex';
+    renderAll();
+  }
+  function exitEditMode(){
+    state.editMode = false;
+    editHeaderBtns.style.display = 'none';
+    renderAll();
+  }
+  document.getElementById('doneBtn').addEventListener('click', exitEditMode);
+
+  // ---------- Tile modal (handles both grid pictures and quick tiles) ----------
+  var tileModalOverlay = document.getElementById('tileModalOverlay');
+  var tileModalTitle = document.getElementById('tileModalTitle');
+  var imgPreviewWrap = document.getElementById('imgPreviewWrap');
+  var tileTextInput = document.getElementById('tileText');
+  var fileInput = document.getElementById('fileInput');
+  var deleteRow = document.getElementById('deleteRow');
+  var filenameHintEl = document.getElementById('filenameHint');
+
+  tileTextInput.addEventListener('input', function(){
+    // Once someone edits the text themselves, stop calling it a filename suggestion.
+    filenameHintEl.style.display = 'none';
+  });
+
+  function openTileModal(tile, isQuick){
+    state.editingTileId = tile ? tile.id : null;
+    state.editingIsQuick = !!isQuick;
+    state.chosenImageData = tile ? tile.image : null;
+    tileModalTitle.textContent = tile ? 'Edit Tile' : 'Add Tile';
+    tileTextInput.value = tile ? (tile.text || '') : '';
+    tileTextInput.placeholder = isQuick ? 'e.g. Yes' : 'e.g. a drink';
+    filenameHintEl.style.display = 'none';
+    updatePreview();
+    deleteRow.style.display = tile ? 'flex' : 'none';
+    fileInput.value = '';
+    tileModalOverlay.style.display = 'flex';
+  }
+  function closeTileModal(){ tileModalOverlay.style.display = 'none'; }
+
+  function updatePreview(){
+    imgPreviewWrap.innerHTML = '';
+    if(state.chosenImageData){
+      var img = document.createElement('img');
+      img.src = state.chosenImageData;
+      imgPreviewWrap.appendChild(img);
+    }else{
+      var span = document.createElement('span');
+      span.textContent = 'No image';
+      imgPreviewWrap.appendChild(span);
+    }
+  }
+
+  document.getElementById('chooseImgBtn').addEventListener('click', function(){ fileInput.click(); });
+  document.getElementById('tileCancelBtn').addEventListener('click', closeTileModal);
+
+  // Turn a picked file's name into a usable suggestion, e.g. "a_drink-02.JPG" -> "a drink 02"
+  function filenameToText(name){
+    if(!name) return '';
+    var withoutExt = name.replace(/\.[a-z0-9]{1,5}$/i, '');
+    var spaced = withoutExt.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return spaced;
+  }
+
+  fileInput.addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    resizeImageToSquare(file, 640).then(function(dataUrl){
+      state.chosenImageData = dataUrl;
+      updatePreview();
+      // Only suggest the filename as the word/phrase if the box is still empty,
+      // so it never overwrites text someone has already typed (or an existing tile's saved text).
+      if(!tileTextInput.value.trim()){
+        var suggestion = filenameToText(file.name);
+        if(suggestion){
+          tileTextInput.value = suggestion;
+          filenameHintEl.style.display = 'block';
+        }
+      }
+    }).catch(function(err){
+      console.error(err);
+      alert('Sorry, that image could not be used.');
+    });
+  });
+
+  function resizeImageToSquare(file, size){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var img = new Image();
+        img.onload = function(){
+          var canvas = document.createElement('canvas');
+          canvas.width = size; canvas.height = size;
+          var ctx = canvas.getContext('2d');
+          var isPng = file.type === 'image/png';
+          if(!isPng){
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0,0,size,size);
+          }
+          var scale = Math.max(size / img.width, size / img.height);
+          var w = img.width * scale, h = img.height * scale;
+          var x = (size - w) / 2, y = (size - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+          resolve(canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.85));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('tileSaveBtn').addEventListener('click', function(){
+    var text = tileTextInput.value.trim();
+    if(!text && !state.chosenImageData){
+      alert('Please add a photo and/or the word(s) to speak.');
+      return;
+    }
+
+    if(state.editingIsQuick){
+      var qtile = { text:text, image: state.chosenImageData || null };
+      var existingQ = state.quickTiles.find(function(t){ return t.id === state.editingTileId; });
+      if(state.editingTileId){
+        qtile.id = state.editingTileId;
+        qtile.order = existingQ ? existingQ.order : state.quickTiles.length;
+        qtile.color = existingQ ? existingQ.color : null;
+      }else{
+        qtile.order = state.quickTiles.length;
+      }
+      putItem('quickTiles', qtile).then(function(newId){
+        if(!qtile.id) qtile.id = newId;
+        var idx = state.quickTiles.findIndex(function(t){ return t.id === qtile.id; });
+        if(idx >= 0) state.quickTiles[idx] = qtile; else state.quickTiles.push(qtile);
+        renderAll();
+        closeTileModal();
+      });
+    }else{
+      var tile = { text:text, image: state.chosenImageData || null };
+      if(state.editingTileId){
+        tile.id = state.editingTileId;
+        var existing = state.tiles.find(function(t){ return t.id === state.editingTileId; });
+        tile.order = existing ? existing.order : state.tiles.length;
+      }else{
+        tile.order = state.tiles.length;
+      }
+      putItem('tiles', tile).then(function(newId){
+        if(!tile.id) tile.id = newId;
+        var idx = state.tiles.findIndex(function(t){ return t.id === tile.id; });
+        if(idx >= 0) state.tiles[idx] = tile; else state.tiles.push(tile);
+        renderAll();
+        closeTileModal();
+      });
+    }
+  });
+
+  document.getElementById('tileDeleteBtn').addEventListener('click', function(){
+    if(!state.editingTileId) return;
+    if(!confirm('Delete this tile? This cannot be undone.')) return;
+    if(state.editingIsQuick){
+      deleteItem('quickTiles', state.editingTileId).then(function(){
+        state.quickTiles = state.quickTiles.filter(function(t){ return t.id !== state.editingTileId; });
+        renderAll();
+        closeTileModal();
+      });
+    }else{
+      deleteItem('tiles', state.editingTileId).then(function(){
+        state.tiles = state.tiles.filter(function(t){ return t.id !== state.editingTileId; });
+        renderAll();
+        closeTileModal();
+      });
+    }
+  });
+
+  // ---------- Settings modal ----------
+  var settingsModalOverlay = document.getElementById('settingsModalOverlay');
+  var catEditList = document.getElementById('catEditList');
+
+  function renderCategoryEditor(){
+    catEditList.innerHTML = '';
+    state.categories.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); }).forEach(function(cat){
+      var row = document.createElement('div');
+      row.className = 'catEditRow';
+
+      var top = document.createElement('div');
+      top.className = 'catEditTop';
+      var labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.value = cat.label;
+      labelInput.addEventListener('change', function(){
+        cat.label = labelInput.value || cat.label;
+        putItem('categories', cat).then(function(){ renderAll(); });
+      });
+      var delBtn = document.createElement('button');
+      delBtn.className = 'catDelBtn';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', function(){
+        if(state.categories.length <= 1){ alert('You need at least one category.'); return; }
+        if(!confirm('Delete the "' + cat.label + '" category?')) return;
+        deleteItem('categories', cat.id).then(function(){
+          state.categories = state.categories.filter(function(c){ return c.id !== cat.id; });
+          if(state.activeCategoryId === cat.id){ state.activeCategoryId = state.categories[0].id; }
+          renderAll();
+          renderCategoryEditor();
+        });
+      });
+      top.appendChild(labelInput);
+      top.appendChild(delBtn);
+      row.appendChild(top);
+
+      var grid = document.createElement('div');
+      grid.className = 'levelGrid';
+      LEVELS.forEach(function(level){
+        var sym = document.createElement('div');
+        sym.className = 'levelSym';
+        sym.textContent = level;
+        sym.style.background = LEVEL_COLORS[level];
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.value = (cat.phrases && cat.phrases[level]) || '';
+        inp.addEventListener('change', function(){
+          cat.phrases = cat.phrases || {};
+          cat.phrases[level] = inp.value;
+          putItem('categories', cat);
+        });
+        grid.appendChild(sym);
+        grid.appendChild(inp);
+      });
+      row.appendChild(grid);
+      catEditList.appendChild(row);
+    });
+  }
+
+  document.getElementById('addCatBtn').addEventListener('click', function(){
+    var label = prompt('New category word (e.g. "feel"):');
+    if(!label) return;
+    var id = 'cat_' + label.toLowerCase().replace(/[^a-z0-9]+/g, '') + '_' + Date.now();
+    var cat = { id:id, order: state.categories.length, label: label, phrases: defaultPhrases(label) };
+    putItem('categories', cat).then(function(){
+      state.categories.push(cat);
+      renderAll();
+      renderCategoryEditor();
+    });
+  });
+
+  document.getElementById('settingsBtn').addEventListener('click', function(){
+    document.getElementById('titleInput').value = state.title;
+    document.getElementById('showTextToggle').checked = state.showText;
+    document.getElementById('rateRange').value = state.rate;
+    document.getElementById('rateVal').textContent = state.rate.toFixed(2);
+    document.getElementById('pitchRange').value = state.pitch;
+    document.getElementById('pitchVal').textContent = state.pitch.toFixed(2);
+    loadVoices();
+    document.getElementById('voiceSelect').value = state.voiceURI || '';
+    renderCategoryEditor();
+    settingsModalOverlay.style.display = 'flex';
+  });
+  document.getElementById('settingsCloseBtn').addEventListener('click', function(){
+    settingsModalOverlay.style.display = 'none';
+  });
+
+  document.getElementById('titleInput').addEventListener('input', function(e){
+    state.title = e.target.value || 'Communication Board';
+    boardTitleEl.textContent = state.title;
+    setSetting('title', state.title);
+  });
+  document.getElementById('showTextToggle').addEventListener('change', function(e){
+    state.showText = e.target.checked;
+    setSetting('showText', state.showText);
+    renderAll();
+  });
+  document.getElementById('rateRange').addEventListener('input', function(e){
+    state.rate = parseFloat(e.target.value);
+    document.getElementById('rateVal').textContent = state.rate.toFixed(2);
+    setSetting('rate', state.rate);
+  });
+  document.getElementById('pitchRange').addEventListener('input', function(e){
+    state.pitch = parseFloat(e.target.value);
+    document.getElementById('pitchVal').textContent = state.pitch.toFixed(2);
+    setSetting('pitch', state.pitch);
+  });
+  document.getElementById('voiceSelect').addEventListener('change', function(e){
+    state.voiceURI = e.target.value;
+    setSetting('voiceURI', state.voiceURI);
+  });
+  document.getElementById('testVoiceBtn').addEventListener('click', function(){
+    speak('This is what the voice sounds like.');
+  });
+
+  // ---------- Export / Import ----------
+  document.getElementById('exportBtn').addEventListener('click', function(){
+    var payload = {
+      formatVersion: 3,
+      exportedAt: new Date().toISOString(),
+      title: state.title,
+      settings: { showText: state.showText, rate: state.rate, pitch: state.pitch, voiceURI: state.voiceURI },
+      categories: state.categories,
+      quickTiles: state.quickTiles,
+      tiles: state.tiles
+    };
+    var blob = new Blob([JSON.stringify(payload)], { type:'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'comboard-backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  });
+
+  document.getElementById('importBtn').addEventListener('click', function(){
+    document.getElementById('importInput').click();
+  });
+  document.getElementById('importInput').addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    if(!confirm('Importing will replace every tile, category and quick button currently on this board. Continue?')) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      try{
+        var data = JSON.parse(ev.target.result);
+        Promise.all([clearStore('tiles'), clearStore('quickTiles'), clearStore('categories')]).then(function(){
+          var catsToImport = (data.categories && data.categories.length) ? data.categories : DEFAULT_CATEGORIES;
+          var chain = Promise.resolve();
+          var savedCats = [];
+          catsToImport.forEach(function(c){
+            chain = chain.then(function(){ return putItem('categories', c).then(function(){ savedCats.push(c); }); });
+          });
+
+          var quickToImport = (data.quickTiles && data.quickTiles.length) ? data.quickTiles : [];
+          var savedQuick = [];
+          quickToImport.forEach(function(qt, i){
+            var item = { text: qt.text || '', image: qt.image || null, color: qt.color || null, order: i };
+            chain = chain.then(function(){ return putItem('quickTiles', item).then(function(id){ item.id = id; savedQuick.push(item); }); });
+          });
+
+          var tilesToImport = data.tiles || [];
+          var savedTiles = [];
+          tilesToImport.forEach(function(t, i){
+            var item = { text: t.text || '', image: t.image || null, order: i };
+            chain = chain.then(function(){ return putItem('tiles', item).then(function(id){ item.id = id; savedTiles.push(item); }); });
+          });
+
+          chain.then(function(){
+            state.categories = savedCats;
+            state.quickTiles = savedQuick;
+            state.tiles = savedTiles;
+            var sortedCats = savedCats.slice().sort(function(a,b){return (a.order||0)-(b.order||0);});
+            state.activeCategoryId = sortedCats.length ? sortedCats[0].id : null;
+            state.activeLevel = '+';
+            if(data.title){ state.title = data.title; boardTitleEl.textContent = state.title; setSetting('title', state.title); }
+            if(data.settings){
+              if(typeof data.settings.showText === 'boolean'){ state.showText = data.settings.showText; setSetting('showText', state.showText); }
+              if(typeof data.settings.rate === 'number'){ state.rate = data.settings.rate; setSetting('rate', state.rate); }
+              if(typeof data.settings.pitch === 'number'){ state.pitch = data.settings.pitch; setSetting('pitch', state.pitch); }
+              if(data.settings.voiceURI){ state.voiceURI = data.settings.voiceURI; setSetting('voiceURI', state.voiceURI); }
+            }
+            renderAll();
+            renderCategoryEditor();
+            alert('Board imported successfully.');
+            settingsModalOverlay.style.display = 'none';
+          });
+        });
+      }catch(err){
+        console.error(err);
+        alert('That file could not be read as a ComBoard backup.');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- Init ----------
+  openDB().then(function(){
+    return getAll('categories');
+  }).then(function(existingCats){
+    if(existingCats.length === 0){
+      var chain = Promise.resolve();
+      DEFAULT_CATEGORIES.forEach(function(c){
+        chain = chain.then(function(){ return putItem('categories', c); });
+      });
+      return chain.then(function(){ return DEFAULT_CATEGORIES.slice(); });
+    }
+    return existingCats;
+  }).then(function(categories){
+    state.categories = categories;
+    return getAll('quickTiles');
+  }).then(function(existingQuick){
+    if(existingQuick.length === 0){
+      var chain = Promise.resolve();
+      var seeded = [];
+      DEFAULT_QUICK_TILES.forEach(function(qt){
+        chain = chain.then(function(){ return putItem('quickTiles', qt).then(function(id){ var copy = Object.assign({}, qt, {id:id}); seeded.push(copy); }); });
+      });
+      return chain.then(function(){ return seeded; });
+    }
+    return existingQuick;
+  }).then(function(quickTiles){
+    state.quickTiles = quickTiles;
+    return getAll('tiles');
+  }).then(function(tiles){
+    state.tiles = tiles;
+    return Promise.all([
+      getSetting('showText', true),
+      getSetting('rate', 1),
+      getSetting('pitch', 1),
+      getSetting('voiceURI', ''),
+      getSetting('title', 'Communication Board')
+    ]);
+  }).then(function(results){
+    state.showText = results[0];
+    state.rate = results[1];
+    state.pitch = results[2];
+    state.voiceURI = results[3];
+    state.title = results[4];
+    boardTitleEl.textContent = state.title;
+    var sortedCats = state.categories.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
+    state.activeCategoryId = sortedCats.length ? sortedCats[0].id : null;
+    loadVoices();
+    renderAll();
+  }).catch(function(err){
+    console.error('Failed to open database', err);
+    emptyStateEl.textContent = 'There was a problem starting the app. Please close and reopen it.';
+    emptyStateEl.style.display = 'block';
+  });
+
+  // Prevent iOS double-tap zoom / pinch zoom
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function(e){
+    var now = Date.now();
+    if(now - lastTouchEnd <= 300){ e.preventDefault(); }
+    lastTouchEnd = now;
+  }, false);
+
+})();
+</script>
+</body>
+</html>
