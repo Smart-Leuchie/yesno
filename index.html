@@ -374,9 +374,10 @@
       <div class="ioBtns">
         <button id="exportBtn">Export Board</button>
         <button id="importBtn">Import Board</button>
+        <button id="webImportBtn">Load from Website</button>
       </div>
-      <input type="file" id="importInput" accept="application/json">
-      <div class="smallNote">Export saves everything (pictures, categories, quick row and settings) to a file you can keep safe or load onto another iPad. Import replaces the current board.</div>
+      <input type="file" id="importInput">
+      <div class="smallNote">Export saves everything (pictures, categories, quick row and settings) to a file you can keep safe or load onto another iPad. Import replaces the current board. &ldquo;Load from Website&rdquo; loads the comboard-backup.json stored alongside this page.</div>
     </div>
 
     <div class="modalBtns">
@@ -1062,14 +1063,8 @@
   document.getElementById('importBtn').addEventListener('click', function(){
     document.getElementById('importInput').click();
   });
-  document.getElementById('importInput').addEventListener('change', function(e){
-    var file = e.target.files && e.target.files[0];
-    if(!file) return;
-    if(!confirm('Importing will replace every tile, category and quick button currently on this board. Continue?')) return;
-    var reader = new FileReader();
-    reader.onload = function(ev){
-      try{
-        var data = JSON.parse(ev.target.result);
+  function importBoardData(data){
+    if(!data || !Array.isArray(data.tiles)) throw new Error('Not a ComBoard backup');
         Promise.all([clearStore('tiles'), clearStore('quickTiles'), clearStore('categories')]).then(function(){
           var catsToImport = (data.categories && data.categories.length) ? data.categories : DEFAULT_CATEGORIES;
           var chain = Promise.resolve();
@@ -1112,12 +1107,34 @@
             settingsModalOverlay.style.display = 'none';
           });
         });
+  }
+
+  document.getElementById('importInput').addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    if(!confirm('Importing will replace every tile, category and quick button currently on this board. Continue?')) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      try{
+        importBoardData(JSON.parse(ev.target.result));
       }catch(err){
         console.error(err);
         alert('That file could not be read as a ComBoard backup.');
       }
     };
     reader.readAsText(file);
+  });
+
+  document.getElementById('webImportBtn').addEventListener('click', function(){
+    if(!confirm('Load the board saved on the website? This will replace every tile, category and quick button currently on this board.')) return;
+    fetch('comboard-backup.json?t=' + Date.now(), { cache:'no-store' })
+      .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(data){ importBoardData(data); })
+      .catch(function(err){
+        console.error(err);
+        alert('Could not load comboard-backup.json from the website. Check you are online and the file is in the repository next to index.html.');
+      });
   });
 
   // ---------- Init ----------
